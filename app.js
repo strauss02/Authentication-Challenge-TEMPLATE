@@ -27,7 +27,7 @@ app.use('/users', userRouter.router)
 app.use('/api', apiRouter)
 
 app.options('/', (req, res) => {
-  if (!req.headers.Authorization) {
+  if (!req.headers.authorization) {
     res.setHeader('Allow', 'OPTIONS, GET, POST')
     res.status(200).send([
       {
@@ -52,10 +52,11 @@ app.options('/', (req, res) => {
     return
   }
 
-  const token = req.headers.Authorization.split(' ')[1]
+  const token = req.headers.authorization.split(' ')[1]
 
   jwt.verify(token, accessTokenSecret, (err, decoded) => {
     if (err) {
+      console.log('we found out it was err')
       res.setHeader('Allow', 'OPTIONS, GET, POST')
       res.status(200).send([
         {
@@ -86,7 +87,8 @@ app.options('/', (req, res) => {
       return
     }
 
-    if (!user.isAdmin) {
+    if (!decoded.isAdmin) {
+      console.log('we found out it was not admin')
       res.setHeader('Allow', 'OPTIONS, GET, POST')
       res.status(200).send([
         {
@@ -137,6 +139,7 @@ app.options('/', (req, res) => {
     }
 
     res.setHeader('Allow', 'OPTIONS, GET, POST')
+    console.log('we found out it was admin')
     res.status(200).send([
       {
         method: 'post',
@@ -189,18 +192,6 @@ app.options('/', (req, res) => {
     ])
   })
 })
-/* ===== Utility Functions ===== */
-
-function generateAccessToken(user) {
-  const accessToken = jwt.sign(user, accessTokenSecret, { expiresIn: '10s' })
-  return accessToken
-}
-
-function generateRefreshToken(user) {
-  const refreshToken = jwt.sign(user, refreshTokenSecret)
-  REFRESHTOKENS.push(refreshToken)
-  return refreshToken
-}
 
 /* ===== ============ ===== */
 

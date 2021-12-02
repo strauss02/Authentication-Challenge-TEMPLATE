@@ -6,16 +6,14 @@ const jwt = require('jsonwebtoken')
 const constants = require('./../constants')
 /* ===== Constants ===== */
 
-const PORT = constants.PORT
-
-const accessTokenSecret = constants.accessTokenSecret
-const refreshTokenSecret = constants.refreshTokenSecret
-
-const USERS = constants.USERS
-
-const INFORMATION = constants.INFORMATION
-
-const REFRESHTOKENS = constants.REFRESHTOKENS
+const {
+  PORT,
+  accessTokenSecret,
+  refreshTokenSecret,
+  USERS,
+  INFORMATION,
+  REFRESHTOKENS,
+} = constants
 
 router.post('/register', async (req, res) => {
   const { email, name, password } = req.body
@@ -37,7 +35,7 @@ router.post('/register', async (req, res) => {
 
   USERS.push(newUser)
 
-  INFORMATION.push({ email: req.body.email, info: `${req.body.user} info` })
+  INFORMATION.push({ email: req.body.email, info: `${name} info` })
 
   res.status(201).send('Register Success')
   res.end()
