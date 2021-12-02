@@ -3,31 +3,22 @@ const router = express.Router()
 const bcrypt = require('bcrypt')
 const morgan = require('morgan')
 const jwt = require('jsonwebtoken')
-
+const constants = require('./../constants')
 /* ===== Constants ===== */
 
-const PORT = 8080
+const PORT = constants.PORT
 
-const accessTokenSecret = 'blah'
-const refreshTokenSecret = 'blahblah'
+const accessTokenSecret = constants.accessTokenSecret
+const refreshTokenSecret = constants.refreshTokenSecret
 
-// Passwords cannot be stored as plain-text - only as hash+salt(10!)
-const USERS = [
-  {
-    email: 'admin@email.com',
-    name: 'admin',
-    password: '$2b$10$tgqItOt6gzm9zJ3b1nd5vOarzktWlBYgorHeaIlcdVvmJM5UFI2km',
-    isAdmin: true,
-  },
-]
+const USERS = constants.USERS
 
-const INFORMATION = []
+const INFORMATION = constants.INFORMATION
 
-const REFRESHTOKENS = []
+const REFRESHTOKENS = constants.REFRESHTOKENS
 
 router.post('/register', async (req, res) => {
-  console.log(req.body.email)
-  console.log(INFORMATION)
+  const { email, name, password } = req.body
 
   if (INFORMATION.some((userInfo) => userInfo.email === req.body.email)) {
     res.status(409).send('user already exists')
@@ -35,11 +26,13 @@ router.post('/register', async (req, res) => {
     return
   }
 
+  const admin = constants.checkAdmin(email, name, password)
+
   const newUser = {
     email: req.body.email,
     name: req.body.name,
     password: await bcrypt.hash(req.body.password, 10),
-    isAdmin: false,
+    isAdmin: admin,
   }
 
   USERS.push(newUser)
@@ -82,8 +75,56 @@ router.post('/login', (req, res) => {
       })
   } else {
     res.status(404).send('cannot find user')
+    Authorization: 'Bearer '
   }
 })
+
+router.post('/tokenValidate', (req, res) => {
+  const token = req.headers.Authorization.split(' ')[1]
+  if (token) {
+    jwt.verify(token, accessTokenSecret, (err, decoded) => {
+      console.log(err)
+      decoded
+        ? res.send({ valid: true })
+        : res.status(403).send('Invalid Access Token')
+    })
+  } else {
+    res.status(401).send('Access Token Required')
+  }
+})
+
+router.post('/token', (req, res) => {
+  const refreshToken = req.body.token
+  if (refreshToken) {
+    jwt.verify(refreshToken, refreshTokenSecret, (err, decoded) => {
+      if (decoded) {
+        accessToken = generateAccessToken(decoded)
+        res.send({ accessToken })
+      } else {
+        res.status(403).send('Invalid Refresh Token')
+      }
+    })
+  } else {
+    res.status(401).send('Refresh Token Required')
+  }
+})
+
+router.post('/logout', (req, res) => {
+  const refreshToken = req.body.token
+  if (refreshToken) {
+    jwt.verify(refreshToken, refreshTokenSecret, (err, decoded) => {
+      if (decoded) {
+        res.send('User Logged Out Successfully')
+      } else {
+        res.status(403).send('Invalid Refresh Token')
+      }
+    })
+  } else {
+    res.status(401).send('Refresh Token Required')
+  }
+})
+
+/* ===== Utility Functions ===== */
 
 function generateAccessToken(user) {
   const accessToken = jwt.sign(user, accessTokenSecret, { expiresIn: '10s' })
@@ -96,4 +137,4 @@ function generateRefreshToken(user) {
   return refreshToken
 }
 
-module.exports = router
+module.exports = { router }
